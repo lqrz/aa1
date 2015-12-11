@@ -1,0 +1,84 @@
+import sys
+import numpy as np
+from matplotlib.table import Table
+import matplotlib.pyplot as plt
+
+sys.path.append("..")
+sys.path.append("./")
+
+import predatorgame as pg
+
+class Test(object):
+	"""docstring for test"""
+	def __init__(self):
+		self.discount = 0.1
+		self.game = pg.PredatorGame((0,0), (5,5), (11,11))
+		
+	def valueIteration(self):
+		initValue = 0
+		delta = -1
+		theta = 0.0001
+		policy = dict()
+		v = {s: initValue for s in self.game.getStates()}
+		v[(0,0)] = 0
+		while(delta >= theta or delta == -1):
+			delta = 0
+			for state in self.game.getStates():
+				backUpState = v[state]
+				bestAction, bestValue = self.getBestActionAndValue(state, v)
+				v[state] = bestValue #devuelve el indice del max()
+				delta = max(delta, abs(backUpState - v[state]))
+
+		for state in self.game.getStates():
+			bestAction, bestValue = self.getBestActionAndValue(state,v)
+			policy[state] = bestAction
+
+		return v, policy
+
+	def getBestActionAndValue(self, state, v):
+		results = []
+		for action in self.game.moves:
+			nextState = self.getFollowingState(state, action)
+			result = self.getReward(state, nextState) + self.discount*v[nextState]
+			results.append(result)
+		bestValue = max(results)
+		bestAction = self.game.moves[np.argmax(results)]
+		return bestAction, bestValue
+
+
+	def getFollowingState(self, state, action):
+		if state == (0,0):
+			return (0,0)
+		else:
+			return self.game.makeMove(state,action)
+
+	def getReward(self, currentState, nextState):
+		if currentState == (0,0):
+			return 0
+		if nextState == (0,0):
+			return 10
+		else:
+			return 0
+
+
+#---------------------------------------------------------------
+
+if "__main__" == __name__:
+	test = Test()
+	v, policy = test.valueIteration()
+	example = []
+
+	preyPosition = (5,5)
+	preds = [(a, b) for a in range(11) for b in range(11)]
+	for p in preds:
+	    example.append((p, preyPosition))
+
+
+	valuesMatrix = np.zeros((test.game.boardSize[0], test.game.boardSize[1]))
+
+	for e in example:
+	    print e
+	    valuesMatrix[e[0][0]][e[0][1]] = round(v[test.game.getState(*e)], 4)
+
+	test.game.checkerboard_table(valuesMatrix, preyPosition)
+	plt.show()
